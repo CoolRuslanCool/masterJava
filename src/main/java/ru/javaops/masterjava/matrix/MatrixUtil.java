@@ -1,8 +1,10 @@
 package ru.javaops.masterjava.matrix;
 
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * gkislin
@@ -14,7 +16,32 @@ public class MatrixUtil {
     public static int[][] concurrentMultiply(int[][] matrixA, int[][] matrixB, ExecutorService executor) throws InterruptedException, ExecutionException {
         final int matrixSize = matrixA.length;
         final int[][] matrixC = new int[matrixSize][matrixSize];
+        final int[] matrixBLine = new int[matrixSize];
+        List<Future> futures = new LinkedList<>();
 
+        for (int i = 0; i < matrixSize; i++) {
+            for (int idx = 0; idx < matrixSize; idx++) {
+                matrixBLine[idx] = matrixB[idx][i];
+            }
+            int finalI = i;
+            futures.add(executor.submit(new Runnable() {
+                int[] line = Arrays.copyOf(matrixBLine, matrixSize);
+
+                @Override
+                public void run() {
+                    for (int j = 0; j < matrixSize; j++) {
+                        int sum = 0;
+                        for (int k = 0; k < matrixSize; k++) {
+                            sum += matrixA[j][k] * line[k];
+                        }
+                        matrixC[j][finalI] = sum;
+                    }
+                }
+            }));
+        }
+        for (Future future : futures) {
+            future.get();
+        }
         return matrixC;
     }
 
@@ -22,14 +49,18 @@ public class MatrixUtil {
     public static int[][] singleThreadMultiply(int[][] matrixA, int[][] matrixB) {
         final int matrixSize = matrixA.length;
         final int[][] matrixC = new int[matrixSize][matrixSize];
+        final int[] matrixBLine = new int[matrixSize];
 
         for (int i = 0; i < matrixSize; i++) {
+            for (int idx = 0; idx < matrixSize; idx++) {
+                matrixBLine[idx] = matrixB[idx][i];
+            }
             for (int j = 0; j < matrixSize; j++) {
                 int sum = 0;
                 for (int k = 0; k < matrixSize; k++) {
-                    sum += matrixA[i][k] * matrixB[k][j];
+                    sum += matrixA[j][k] * matrixBLine[k];
                 }
-                matrixC[i][j] = sum;
+                matrixC[j][i] = sum;
             }
         }
         return matrixC;
