@@ -32,3 +32,16 @@ CREATE TABLE user_group (
   group_id INTEGER NOT NULL REFERENCES groups (id),
   CONSTRAINT users_group_idx UNIQUE (user_id, group_id)
 );
+
+--changeset gkislin:2
+CREATE TYPE SEND_STATUS AS ENUM ('OK', 'FAILED');
+
+create table messages_history (
+  id integer primary key default nextval('common_seq'),
+  emails_to text not null,
+  emails_cc text not null,
+  body text not null,
+  subject text not null,
+  date timestamp not null,
+  status SEND_STATUS not null
+);
