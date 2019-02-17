@@ -6,7 +6,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import ru.javaops.masterjava.persist.DBIProvider;
-import ru.javaops.masterjava.persist.DBITestProvider;
 
 @Slf4j
 public abstract class AbstractDaoTest<DAO extends AbstractDao> {

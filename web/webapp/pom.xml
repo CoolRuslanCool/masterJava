@@ -26,5 +26,11 @@
             <artifactId>persist</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>persist-dbi</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
     </dependencies>
 </project>

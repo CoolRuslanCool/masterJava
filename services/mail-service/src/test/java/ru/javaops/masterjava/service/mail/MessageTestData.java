@@ -1,6 +1,5 @@
 package ru.javaops.masterjava.service.mail;
 
-import com.google.common.collect.ImmutableList;
 import ru.javaops.masterjava.service.mail.dao.model.Message;
 import ru.javaops.masterjava.service.mail.dao.model.SendStatus;
 

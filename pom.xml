@@ -17,6 +17,7 @@
 
         <module>common</module>
         <module>persist</module>
+        <module>persist-dbi</module>
         <module>test</module>
 
         <module>web</module>

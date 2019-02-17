@@ -3,14 +3,13 @@ package ru.javaops.masterjava.service.mail.dao;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import ru.javaops.masterjava.persist.DBIProvider;
+import ru.javaops.masterjava.persist.dao.AbstractDaoTest;
 import ru.javaops.masterjava.service.mail.MessageTestData;
 
-import static org.junit.Assert.*;
-
-public class MessageDaoTest {
+public class MessageDaoTest extends AbstractDaoTest<MessageDao> {
 
     public MessageDaoTest() {
+        super(MessageDao.class);
     }
 
     @BeforeClass
@@ -20,6 +19,7 @@ public class MessageDaoTest {
 
     @Before
     public void setUp() throws Exception {
+        dao.clean();
     }
 
     @Test
