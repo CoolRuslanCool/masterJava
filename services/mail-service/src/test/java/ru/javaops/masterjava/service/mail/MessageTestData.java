@@ -1,15 +1,18 @@
 package ru.javaops.masterjava.service.mail;
 
+import com.google.common.collect.ImmutableList;
 import ru.javaops.masterjava.service.mail.dao.model.Message;
 import ru.javaops.masterjava.service.mail.dao.model.SendStatus;
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 
 public class MessageTestData {
     public static Message MESSAGE_1;
     public static Message MESSAGE_2;
     public static Message MESSAGE_3;
+    public static List<Message> MESSAGES;
 
     public static void init() {
         MESSAGE_1 = new Message(
@@ -36,5 +39,6 @@ public class MessageTestData {
                 new Timestamp(new Date().getTime()),
                 SendStatus.OK
         );
+        MESSAGES = ImmutableList.of(MESSAGE_1, MESSAGE_2, MESSAGE_3);
     }
 }

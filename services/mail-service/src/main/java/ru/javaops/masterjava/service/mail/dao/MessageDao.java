@@ -15,11 +15,14 @@ import java.util.List;
 @RegisterMapperFactory(EntityMapperFactory.class)
 public abstract class MessageDao implements AbstractDao {
 
-    @SqlUpdate("insert into messages_history (emails_to, emails_cc, body, subject, date, status) VALUES (:emailsTo, emailsCc, body, subject, date, cast(:status as send_status)) ")
+    @SqlUpdate("insert into messages_history (emails_to, emails_cc, body, subject, date, status) VALUES (:emailsTo, :emailsCc, :body, :subject, :date, cast(:status as send_status)) ")
     public abstract void insert(@BindBean Message message);
 
-    @SqlQuery("select * from messages_history where status=cast(:status as send_status)")
+    @SqlQuery("select * from messages_history where status=cast(:it as send_status)")
     public abstract List<Message> selectByStatus(@Bind SendStatus status);
+
+    @SqlQuery("select * from messages_history ")
+    public abstract List<Message> selectAll();
 
     @Override
     @SqlUpdate("truncate messages_history")
