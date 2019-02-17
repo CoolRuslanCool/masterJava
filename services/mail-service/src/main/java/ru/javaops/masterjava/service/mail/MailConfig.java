@@ -48,6 +48,7 @@ public class MailConfig {
         email.setAuthenticator(authenticator);
         email.setSSLOnConnect(useSSL);
         email.setFrom(username, fromName);
+        email.addHeader("List-Unsubscribe", "<mailto:cool3331982@yandex.ru>");
         return email;
     }
 
