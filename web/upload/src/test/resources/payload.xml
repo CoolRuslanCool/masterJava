@@ -7,11 +7,11 @@
             <description>Topjava</description>
             <Group name="topjava06" type="FINISHED"/>
             <Group name="topjava07" type="FINISHED"/>
-            <Group name="topjava08" type="CURRENT"/>
+            <Group name="topjava08" type="FINISHED"/>
         </Project>
         <Project name="masterjava">
             <description>Masterjava</description>
-            <Group name="masterjava01" type="CURRENT"/>
+            <Group name="masterjava01" type="FINISHED"/>
         </Project>
     </Projects>
     <Cities>

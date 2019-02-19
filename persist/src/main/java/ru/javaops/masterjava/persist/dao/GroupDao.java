@@ -30,6 +30,9 @@ public abstract class GroupDao implements AbstractDao {
     @GetGeneratedKeys
     public abstract int insertGeneratedId(@BindBean Group groups);
 
+    @SqlUpdate("UPDATE groups SET name=:name, type=CAST(:type AS group_type), project_id=:projectId WHERE id=:id")
+    public abstract void update(@BindBean Group groups);
+
     public void insert(Group groups) {
         int id = insertGeneratedId(groups);
         groups.setId(id);

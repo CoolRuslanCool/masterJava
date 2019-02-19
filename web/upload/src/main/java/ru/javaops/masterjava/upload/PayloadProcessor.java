@@ -2,16 +2,19 @@ package ru.javaops.masterjava.upload;
 
 import lombok.AllArgsConstructor;
 import lombok.val;
+import ru.javaops.masterjava.persist.model.Group;
 import ru.javaops.masterjava.xml.util.StaxStreamProcessor;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 public class PayloadProcessor {
     private final CityProcessor cityProcessor = new CityProcessor();
     private final UserProcessor userProcessor = new UserProcessor();
+    private final ProjectProcessor projectProcessor = new ProjectProcessor();
 
     @AllArgsConstructor
     public static class FailedEmails {
@@ -27,7 +30,8 @@ public class PayloadProcessor {
 
     public List<FailedEmails> process(InputStream is, int chunkSize) throws XMLStreamException, JAXBException {
         final StaxStreamProcessor processor = new StaxStreamProcessor(is);
+        final Map<String, Group> groups = projectProcessor.getGroups(processor);
         val cities = cityProcessor.process(processor);
-        return userProcessor.process(processor, cities, chunkSize);
+        return userProcessor.process(processor, groups, cities, chunkSize);
     }
 }
