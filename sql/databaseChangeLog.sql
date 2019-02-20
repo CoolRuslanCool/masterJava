@@ -33,7 +33,7 @@ CREATE TABLE user_group (
   CONSTRAINT users_group_idx UNIQUE (user_id, group_id)
 );
 
---changeset gkislin:2
+--changeset gkislin:3
 CREATE TYPE SEND_STATUS AS ENUM ('OK', 'FAILED');
 
 create table messages_history (
@@ -45,3 +45,6 @@ create table messages_history (
   date timestamp not null,
   status SEND_STATUS not null
 );
+
+--changeset gkislin:4
+alter table users add column group_refs text;

@@ -16,9 +16,11 @@ public class User extends BaseEntity {
     private @NonNull UserFlag flag;
     @Column("city_ref")
     private @NonNull String cityRef;
+    @Column("group_refs")
+    private String groupRefs;
 
-    public User(Integer id, String fullName, String email, UserFlag flag, String cityRef) {
-        this(fullName, email, flag, cityRef);
+    public User(Integer id, String fullName, String email, UserFlag flag, String cityRef, String groupRefs) {
+        this(fullName, email, flag, cityRef, groupRefs);
         this.id=id;
     }
 }

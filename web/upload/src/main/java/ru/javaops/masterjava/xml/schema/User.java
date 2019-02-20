@@ -158,7 +158,7 @@ public class User {
      * <pre>
      *    getGroupRefs().add(newItem);
      * </pre>
-     * 
+     * groupRefs
      * 
      * <p>
      * Objects of the following type(s) are allowed in the list

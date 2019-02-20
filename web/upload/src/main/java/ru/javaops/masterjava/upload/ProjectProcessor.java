@@ -25,6 +25,7 @@ public class ProjectProcessor {
     public Map<String, Group> getGroups(StaxStreamProcessor processor) throws XMLStreamException, JAXBException {
         final Map<String, Project> projects = projectDao.getAsMap();
         final Map<String, Group> groups = groupDao.getAsMap();
+        final List<ru.javaops.masterjava.xml.schema.Project> projectElements = new ArrayList<>();
 
         while (processor.startElement("Project", "Projects")) {
             final JaxbUnmarshaller unmarshaller = parser.createUnmarshaller();
@@ -38,22 +39,29 @@ public class ProjectProcessor {
                 projectDao.insert(project);
             }
 
-            Project finalProject = project;
-            projectElement.getGroup().forEach(
-                    g -> {
-                        final Group group = new Group(g.getName(), GroupType.valueOf(g.getType().name()), finalProject.getId());
-
-                        if (!groups.containsKey(g.getName())) {
-                            log.info("Insert group : <{}>.", group);
-                            groupDao.insert(group);
-                        } else {
-                            group.setId(groups.get(group.getName()).getId());
-                            log.info("Update group : <{}>.", group);
-                            groupDao.update(group);
-                        }
-                    }
-            );
+            groupsProcess(groups, projectElement, project);
         }
         return groupDao.getAsMap();
+    }
+
+    private void groupsProcess(
+            Map<String, Group> groups,
+            ru.javaops.masterjava.xml.schema.Project projectElement,
+            Project finalProject
+    ) {
+        projectElement.getGroup().forEach(
+                g -> {
+                    final Group group = new Group(g.getName(), GroupType.valueOf(g.getType().name()), finalProject.getId());
+
+                    if (!groups.containsKey(g.getName())) {
+                        log.info("Insert group : <{}>.", group);
+                        groupDao.insert(group);
+                    } else {
+                        group.setId(groups.get(group.getName()).getId());
+                        log.info("Update group : <{}>.", group);
+                        groupDao.update(group);
+                    }
+                }
+        );
     }
 }
