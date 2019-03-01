@@ -1,6 +1,6 @@
 package ru.javaops.masterjava.service.mail;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
@@ -15,10 +15,14 @@ public class MailServiceClient {
                 new QName("http://mail.javaops.ru/", "MailServiceImplService"));
 
         MailService mailService = service.getPort(MailService.class);
-        mailService.sendMail(ImmutableList.of(
-                new Addressee("cool3331982@mail.ru", "Mail Ruslan"),
-                new Addressee("cool61082@gmail.com", "Mail Ruslan")
-                ),
-                null, "Subject", "Body");
+
+        String state = mailService.sendToGroup(ImmutableSet.of(new Addressee("masterjava@javaops.ru", null)), null,
+                "Group mail subject", "Group mail body");
+        System.out.println("Group mail state: " + state);
+
+        GroupResult groupResult = mailService.sendBulk(ImmutableSet.of(
+                new Addressee("Мастер Java <masterjava@javaops.ru>"),
+                new Addressee("Bad Email <bad_email.ru>")), "Bulk mail subject", "Bulk mail body");
+        System.out.println("\nBulk mail groupResult:\n" + groupResult);
     }
 }
