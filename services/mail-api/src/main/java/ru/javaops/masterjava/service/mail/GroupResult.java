@@ -1,16 +1,20 @@
 package ru.javaops.masterjava.service.mail;
 
-import com.google.common.collect.ImmutableList;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@XmlAccessorType(XmlAccessType.FIELD)
+@Getter
 public class GroupResult {
     private int success; // number of successfully sent email
-    private List<MailResult> failed = ImmutableList.of(); // failed emails with causes
+    private List<MailResult> failed; // failed emails with causes
     private String failedCause;  // global fail cause
 
     public GroupResult(int success, List<MailResult> failed) {
