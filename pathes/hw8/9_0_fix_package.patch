@@ -1,0 +1,144 @@
+Index: services/common-ws/src/main/java/ru/javaops/web/FaultInfo.java
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/web/FaultInfo.java	(date 1512925988000)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/FaultInfo.java	(date 1513026473804)
+@@ -1,4 +1,4 @@
+-package ru.javaops.web;
++package ru.javaops.masterjava.web;
+ 
+ import lombok.Data;
+ import lombok.NoArgsConstructor;
+Index: services/common-ws/src/main/java/ru/javaops/web/WebStateException.java
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/web/WebStateException.java	(date 1512925988000)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/WebStateException.java	(date 1513026474272)
+@@ -1,4 +1,4 @@
+-package ru.javaops.web;
++package ru.javaops.masterjava.web;
+ 
+ 
+ import lombok.Getter;
+Index: services/common-ws/src/main/java/ru/javaops/web/WsClient.java
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/web/WsClient.java	(date 1512925988000)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java	(date 1513026474129)
+@@ -1,4 +1,4 @@
+-package ru.javaops.web;
++package ru.javaops.masterjava.web;
+ 
+ import com.typesafe.config.Config;
+ import ru.javaops.masterjava.ExceptionType;
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailService.java	(date 1512925988000)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailService.java	(date 1513026473706)
+@@ -1,6 +1,6 @@
+ package ru.javaops.masterjava.service.mail;
+ 
+-import ru.javaops.web.WebStateException;
++import ru.javaops.masterjava.web.WebStateException;
+ 
+ import javax.jws.WebMethod;
+ import javax.jws.WebParam;
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java	(date 1512925988000)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java	(date 1513026473983)
+@@ -5,8 +5,8 @@
+ import com.google.common.collect.Iterables;
+ import com.google.common.io.Resources;
+ import lombok.extern.slf4j.Slf4j;
+-import ru.javaops.web.WebStateException;
+-import ru.javaops.web.WsClient;
++import ru.javaops.masterjava.web.WebStateException;
++import ru.javaops.masterjava.web.WsClient;
+ 
+ import javax.xml.namespace.QName;
+ import java.util.Set;
+Index: services/mail-api/src/test/java/ru/javaops/masterjava/service/mail/MailWSClientMain.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/test/java/ru/javaops/masterjava/service/mail/MailWSClientMain.java	(date 1512925988000)
++++ services/mail-api/src/test/java/ru/javaops/masterjava/service/mail/MailWSClientMain.java	(date 1513026473923)
+@@ -2,7 +2,7 @@
+ 
+ import com.google.common.collect.ImmutableSet;
+ import lombok.extern.slf4j.Slf4j;
+-import ru.javaops.web.WebStateException;
++import ru.javaops.masterjava.web.WebStateException;
+ 
+ @Slf4j
+ public class MailWSClientMain {
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailSender.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailSender.java	(date 1512925988000)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailSender.java	(date 1513026474189)
+@@ -9,7 +9,7 @@
+ import ru.javaops.masterjava.persist.DBIProvider;
+ import ru.javaops.masterjava.service.mail.persist.MailCase;
+ import ru.javaops.masterjava.service.mail.persist.MailCaseDao;
+-import ru.javaops.web.WebStateException;
++import ru.javaops.masterjava.web.WebStateException;
+ 
+ import java.util.Set;
+ 
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceExecutor.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceExecutor.java	(date 1512925988000)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceExecutor.java	(date 1513026474370)
+@@ -3,8 +3,8 @@
+ import lombok.extern.slf4j.Slf4j;
+ import one.util.streamex.StreamEx;
+ import ru.javaops.masterjava.ExceptionType;
+-import ru.javaops.web.WebStateException;
+-import ru.javaops.web.WsClient;
++import ru.javaops.masterjava.web.WebStateException;
++import ru.javaops.masterjava.web.WsClient;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java	(date 1512925988000)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java	(date 1513026474315)
+@@ -1,6 +1,6 @@
+ package ru.javaops.masterjava.service.mail;
+ 
+-import ru.javaops.web.WebStateException;
++import ru.javaops.masterjava.web.WebStateException;
+ 
+ import javax.jws.WebService;
+ import java.util.Set;
+Index: services/mail-service/src/test/java/ru/javaops/masterjava/service/mail/MailServiceClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/test/java/ru/javaops/masterjava/service/mail/MailServiceClient.java	(date 1512925988000)
++++ services/mail-service/src/test/java/ru/javaops/masterjava/service/mail/MailServiceClient.java	(date 1513026474061)
+@@ -1,7 +1,7 @@
+ package ru.javaops.masterjava.service.mail;
+ 
+ import com.google.common.collect.ImmutableSet;
+-import ru.javaops.web.WebStateException;
++import ru.javaops.masterjava.web.WebStateException;
+ 
+ import javax.xml.namespace.QName;
+ import javax.xml.ws.Service;

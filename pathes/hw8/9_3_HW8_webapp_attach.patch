@@ -1,0 +1,149 @@
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java	(date 1513007622212)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java	(date 1513007622212)
+@@ -0,0 +1,47 @@
++package ru.javaops.masterjava.service.mail.util;
++
++import lombok.AllArgsConstructor;
++import ru.javaops.masterjava.service.mail.Attachment;
++
++import javax.activation.DataHandler;
++import javax.activation.DataSource;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.OutputStream;
++
++public class Attachments {
++    public static Attachment getAttachment(String name, InputStream inputStream) {
++        return new Attachment(name, new DataHandler(new InputStreamDataSource(inputStream)));
++    }
++
++    //    http://stackoverflow.com/a/10783565/548473
++    @AllArgsConstructor
++    private static class InputStreamDataSource implements DataSource {
++        private InputStream inputStream;
++
++        @Override
++        public InputStream getInputStream() throws IOException {
++            if (inputStream == null) {
++                throw new IOException("Second getInputStream() call is not supported");
++            }
++            InputStream res = inputStream;
++            inputStream = null;
++            return res;
++        }
++
++        @Override
++        public OutputStream getOutputStream() throws IOException {
++            throw new UnsupportedOperationException("Not implemented");
++        }
++
++        @Override
++        public String getContentType() {
++            return "application/octet-stream";
++        }
++
++        @Override
++        public String getName() {
++            return "";
++        }
++    }
++}
+Index: web/webapp/src/main/java/ru/javaops/masterjava/webapp/SendServlet.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- web/webapp/src/main/java/ru/javaops/masterjava/webapp/SendServlet.java	(date 1513007193000)
++++ web/webapp/src/main/java/ru/javaops/masterjava/webapp/SendServlet.java	(date 1513008753278)
+@@ -1,18 +1,23 @@
+ package ru.javaops.masterjava.webapp;
+ 
++import com.google.common.collect.ImmutableList;
+ import lombok.extern.slf4j.Slf4j;
+ import ru.javaops.masterjava.service.mail.GroupResult;
+ import ru.javaops.masterjava.service.mail.MailWSClient;
++import ru.javaops.masterjava.service.mail.util.Attachments;
+ 
+ import javax.servlet.ServletException;
++import javax.servlet.annotation.MultipartConfig;
+ import javax.servlet.annotation.WebServlet;
+ import javax.servlet.http.HttpServlet;
+ import javax.servlet.http.HttpServletRequest;
+ import javax.servlet.http.HttpServletResponse;
++import javax.servlet.http.Part;
+ import java.io.IOException;
+ 
+ @WebServlet("/send")
+ @Slf4j
++@MultipartConfig
+ public class SendServlet extends HttpServlet {
+     @Override
+     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+@@ -24,7 +29,10 @@
+             String users = req.getParameter("users");
+             String subject = req.getParameter("subject");
+             String body = req.getParameter("body");
+-            GroupResult groupResult = MailWSClient.sendBulk(MailWSClient.split(users), subject, body, null);
++            Part filePart = req.getPart("attach");
++            GroupResult groupResult = MailWSClient.sendBulk(MailWSClient.split(users), subject, body,
++                    filePart == null ? null :
++                            ImmutableList.of(Attachments.getAttachment(filePart.getSubmittedFileName(), filePart.getInputStream())));
+             result = groupResult.toString();
+             log.info("Processing finished with result: {}", result);
+         } catch (Exception e) {
+Index: web/webapp/src/main/webapp/WEB-INF/templates/users.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- web/webapp/src/main/webapp/WEB-INF/templates/users.html	(date 1513007193000)
++++ web/webapp/src/main/webapp/WEB-INF/templates/users.html	(date 1513008571038)
+@@ -40,6 +40,9 @@
+         <textarea id="body" placeholder="mail body" cols=75 rows=5></textarea><br/>
+     </p>
+     <p>
++        <input id="attach" type="file">
++    </p>
++    <p>
+         <button type="button" onclick="send()">Send</button>
+     </p>
+     <pre id="result"></pre>
+@@ -50,14 +53,26 @@
+         var users = $("input:checkbox:checked").map(function () {
+             return this.value;
+         }).get();
++
++        // https://stackoverflow.com/a/5976031/548473
++        var fd = new FormData();
++        fd.append('users', users);
++        fd.append('subject', $("#subject").val());
++        fd.append('body', $("#body").val());
++        var attach = $('#attach')[0].files[0];
++        if (attach) fd.append('attach', attach);
++
+ //        https://stackoverflow.com/a/22213543/548473
+-        $.post("send", "users=" + users + "&subject=" + $("#subject").val() + "&body=" + $("#body").val())
+-            .done(function (result) {
+-                $('#result').html(result);
+-            })
+-            .fail(function (result) {
+-                $('#result').html(result);
+-            });
++        $.post({
++            url: 'send',
++            data: fd,
++            contentType: false,
++            processData: false
++        }).done(function (result) {
++            $('#result').html(result);
++        }).fail(function (result) {
++            $('#result').html(result);
++        });
+     }
+ </script>
+ </body>

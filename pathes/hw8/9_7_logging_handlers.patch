@@ -1,0 +1,349 @@
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapBaseHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapBaseHandler.java	(date 1513027368718)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapBaseHandler.java	(date 1513027368718)
+@@ -0,0 +1,23 @@
++package ru.javaops.masterjava.web.handler;
++
++import com.sun.xml.ws.api.handler.MessageHandler;
++import com.sun.xml.ws.api.handler.MessageHandlerContext;
++
++import javax.xml.namespace.QName;
++import javax.xml.ws.handler.MessageContext;
++import java.util.Set;
++
++public abstract class SoapBaseHandler implements MessageHandler<MessageHandlerContext> {
++
++    public Set<QName> getHeaders() {
++        return null;
++    }
++
++    @Override
++    public void close(MessageContext context) {
++    }
++
++    protected static boolean isOutbound(MessageHandlerContext context) {
++        return (Boolean) context.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
++    }
++}
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapLoggingHandlers.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapLoggingHandlers.java	(date 1513027368763)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapLoggingHandlers.java	(date 1513027368763)
+@@ -0,0 +1,143 @@
++package ru.javaops.masterjava.web.handler;
++
++
++import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
++import com.sun.xml.ws.api.handler.MessageHandlerContext;
++import com.sun.xml.ws.api.message.Message;
++import com.sun.xml.ws.api.streaming.XMLStreamWriterFactory;
++import lombok.extern.slf4j.Slf4j;
++import org.slf4j.event.Level;
++
++import javax.xml.stream.XMLStreamWriter;
++import java.io.ByteArrayOutputStream;
++import java.nio.charset.StandardCharsets;
++import java.util.EnumMap;
++import java.util.Map;
++
++/**
++ * Refactored from:
++ *
++ * @see {http://weblogs.java.net/blog/ramapulavarthi/archive/2007/12/extend_your_web.html
++ * http://fisheye5.cenqua.com/browse/jax-ws-sources/jaxws-ri/samples/efficient_handler/src/efficient_handler/common/LoggingHandler.java?r=MAIN}
++ * <p/>
++ * This simple LoggingHandler will log the contents of incoming
++ * and outgoing messages. This is implemented as a MessageHandler
++ * for better performance over SOAPHandler.
++ */
++@Slf4j
++public abstract class SoapLoggingHandlers extends SoapBaseHandler {
++
++    private final Level loggingLevel;
++
++    protected SoapLoggingHandlers(Level loggingLevel) {
++        this.loggingLevel = loggingLevel;
++    }
++
++    private static final Map<Level, HANDLER> HANDLER_MAP = new EnumMap<Level, HANDLER>(Level.class) {
++        {
++            put(Level.TRACE, HANDLER.DEBUG);
++            put(Level.DEBUG, HANDLER.DEBUG);
++            put(Level.INFO, HANDLER.INFO);
++            put(Level.WARN, HANDLER.ERROR);
++            put(Level.ERROR, HANDLER.ERROR);
++        }
++    };
++
++    protected enum HANDLER {
++        NONE {
++            @Override
++            public void handleFault(MessageHandlerContext mhc) {
++            }
++
++            @Override
++            public void handleMessage(MessageHandlerContext mhc, boolean isRequest) {
++            }
++        },
++        ERROR {
++            private static final String REQUEST_MSG = "REQUEST_MSG";
++
++            public void handleFault(MessageHandlerContext context) {
++                log.error("Fault SOAP request:\n" + getMessageText(((Message) context.get(REQUEST_MSG))));
++            }
++
++            public void handleMessage(MessageHandlerContext context, boolean isRequest) {
++                if (isRequest) {
++                    context.put(REQUEST_MSG, context.getMessage().copy());
++                }
++            }
++        },
++        INFO {
++            public void handleFault(MessageHandlerContext context) {
++                ERROR.handleFault(context);
++            }
++
++            public void handleMessage(MessageHandlerContext context, boolean isRequest) {
++                ERROR.handleMessage(context, isRequest);
++                log.info((isRequest ? "SOAP request: " : "SOAP response: ") + context.getMessage().getPayloadLocalPart());
++            }
++        },
++        DEBUG {
++            public void handleFault(MessageHandlerContext context) {
++                log.error("Fault SOAP message:\n" + getMessageText(context.getMessage().copy()));
++            }
++
++            public void handleMessage(MessageHandlerContext context, boolean isRequest) {
++                log.info((isRequest ? "SOAP request:\n" : "SOAP response:\n") + getMessageText(context.getMessage().copy()));
++            }
++        };
++
++        public abstract void handleMessage(MessageHandlerContext mhc, boolean isRequest);
++
++        public abstract void handleFault(MessageHandlerContext mhc);
++
++        protected static String getMessageText(Message msg) {
++            try {
++                ByteArrayOutputStream out = new ByteArrayOutputStream();
++                XMLStreamWriter writer = XMLStreamWriterFactory.create(out, "UTF-8");
++                IndentingXMLStreamWriter wrap = new IndentingXMLStreamWriter(writer);
++                msg.writeTo(wrap);
++                return out.toString(StandardCharsets.UTF_8.name());
++            } catch (Exception e) {
++                log.warn("Coudn't get SOAP message for logging", e);
++                return null;
++            }
++        }
++    }
++
++    abstract protected boolean isRequest(boolean isOutbound);
++
++    @Override
++    public boolean handleMessage(MessageHandlerContext mhc) {
++        HANDLER_MAP.get(loggingLevel).handleMessage(mhc, isRequest(isOutbound(mhc)));
++        return true;
++    }
++
++    @Override
++    public boolean handleFault(MessageHandlerContext mhc) {
++        HANDLER_MAP.get(loggingLevel).handleFault(mhc);
++        return true;
++    }
++
++    public static class ClientHandler extends SoapLoggingHandlers {
++        public ClientHandler(Level loggingLevel) {
++            super(loggingLevel);
++        }
++
++        @Override
++        protected boolean isRequest(boolean isOutbound) {
++            return isOutbound;
++        }
++    }
++
++    public static class ServerHandler extends SoapLoggingHandlers {
++
++        public ServerHandler() {
++            super(Level.INFO);
++        }
++
++        @Override
++        protected boolean isRequest(boolean isOutbound) {
++            return !isOutbound;
++        }
++    }
++}
+Index: services/mail-service/src/main/resources/mailWsHandlers.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/resources/mailWsHandlers.xml	(date 1513027368670)
++++ services/mail-service/src/main/resources/mailWsHandlers.xml	(date 1513027368670)
+@@ -0,0 +1,8 @@
++<handler-chains xmlns="http://java.sun.com/xml/ns/javaee">
++<handler-chain>
++    <handler>
++        <handler-name>SoapLoggingHandler</handler-name>
++        <handler-class>ru.javaops.masterjava.web.handler.SoapLoggingHandlers$ServerHandler</handler-class>
++    </handler>
++</handler-chain>
++</handler-chains>
+\ No newline at end of file
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java	(date 1513027197000)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java	(date 1513027321227)
+@@ -5,10 +5,13 @@
+ import ru.javaops.masterjava.config.Configs;
+ 
+ import javax.xml.namespace.QName;
++import javax.xml.ws.Binding;
+ import javax.xml.ws.BindingProvider;
+ import javax.xml.ws.Service;
+ import javax.xml.ws.WebServiceFeature;
++import javax.xml.ws.handler.Handler;
+ import java.net.URL;
++import java.util.List;
+ import java.util.Map;
+ 
+ public class WsClient<T> {
+@@ -46,6 +49,13 @@
+         requestContext.put(BindingProvider.PASSWORD_PROPERTY, password);
+     }
+ 
++    public static <T> void setHandler(T port, Handler handler) {
++        Binding binding = ((BindingProvider) port).getBinding();
++        List<Handler> handlerList = binding.getHandlerChain();
++        handlerList.add(handler);
++        binding.setHandlerChain(handlerList);
++    }
++
+     public static WebStateException getWebStateException(Throwable t, ExceptionType type) {
+         return (t instanceof WebStateException) ? (WebStateException) t : new WebStateException(t, type);
+     }
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java	(date 1513027197000)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java	(date 1513027276361)
+@@ -1,6 +1,7 @@
+ package ru.javaops.masterjava.service.mail.util;
+ 
+ import lombok.AllArgsConstructor;
++import org.apache.commons.io.input.CloseShieldInputStream;
+ import ru.javaops.masterjava.service.mail.Attachment;
+ 
+ import javax.activation.DataHandler;
+@@ -14,6 +15,7 @@
+         return new Attachment(name, new DataHandler(new InputStreamDataSource(inputStream)));
+     }
+ 
++    //    http://stackoverflow.com/questions/2830561/how-to-convert-an-inputstream-to-a-datahandler
+     //    http://stackoverflow.com/a/10783565/548473
+     @AllArgsConstructor
+     private static class InputStreamDataSource implements DataSource {
+@@ -21,12 +23,7 @@
+ 
+         @Override
+         public InputStream getInputStream() throws IOException {
+-            if (inputStream == null) {
+-                throw new IOException("Second getInputStream() call is not supported");
+-            }
+-            InputStream res = inputStream;
+-            inputStream = null;
+-            return res;
++            return new CloseShieldInputStream(inputStream);
+         }
+ 
+         @Override
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java	(date 1513027197000)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java	(date 1513027631894)
+@@ -5,9 +5,11 @@
+ import com.google.common.collect.Iterables;
+ import com.google.common.io.Resources;
+ import lombok.extern.slf4j.Slf4j;
++import org.slf4j.event.Level;
+ import ru.javaops.masterjava.web.AuthUtil;
+ import ru.javaops.masterjava.web.WebStateException;
+ import ru.javaops.masterjava.web.WsClient;
++import ru.javaops.masterjava.web.handler.SoapLoggingHandlers;
+ 
+ import javax.xml.namespace.QName;
+ import javax.xml.ws.soap.MTOMFeature;
+@@ -19,6 +21,7 @@
+     private static final WsClient<MailService> WS_CLIENT;
+     public static final String USER = "user";
+     public static final String PASSWORD = "password";
++    private static final SoapLoggingHandlers.ClientHandler LOGGING_HANDLER = new SoapLoggingHandlers.ClientHandler(Level.DEBUG);
+ 
+     public static String AUTH_HEADER = AuthUtil.encodeBasicAuthHeader(USER, PASSWORD);
+ 
+@@ -48,6 +51,7 @@
+     private static MailService getPort() {
+         MailService port = WS_CLIENT.getPort(new MTOMFeature(1024));
+         WsClient.setAuth(port, USER, PASSWORD);
++        WsClient.setHandler(port, LOGGING_HANDLER);
+         return port;
+     }
+ 
+Index: services/mail-api/pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/pom.xml	(date 1513027197000)
++++ services/mail-api/pom.xml	(date 1513027321098)
+@@ -33,6 +33,11 @@
+             <artifactId>common-ws</artifactId>
+             <version>${project.version}</version>
+         </dependency>
++        <dependency>
++            <groupId>commons-io</groupId>
++            <artifactId>commons-io</artifactId>
++            <version>2.6</version>
++        </dependency>
+     </dependencies>
+ 
+ </project>
+\ No newline at end of file
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java	(date 1513027197000)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java	(date 1513027321152)
+@@ -4,6 +4,7 @@
+ import ru.javaops.masterjava.web.WebStateException;
+ 
+ import javax.annotation.Resource;
++import javax.jws.HandlerChain;
+ import javax.jws.WebService;
+ import javax.xml.ws.WebServiceContext;
+ import javax.xml.ws.handler.MessageContext;
+@@ -17,6 +18,7 @@
+ )
+ //@StreamingAttachment(parseEagerly=true, memoryThreshold=40000L)
+ @MTOM
++@HandlerChain(file = "mailWsHandlers.xml")
+ public class MailServiceImpl implements MailService {
+ 
+     @Resource

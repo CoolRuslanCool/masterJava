@@ -1,0 +1,81 @@
+Index: config_templates/app.conf
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- config_templates/app.conf	(date 1513010399000)
++++ config_templates/app.conf	(date 1513010538903)
+@@ -3,4 +3,6 @@
+   projectName = ${project.name}
+   version = ${project.version}
+   configDir = "${masterjava.config}"
++  branch.name = ${scmBranch}
++  commit.hash = ${buildNumber}
+ }
+\ No newline at end of file
+Index: config_templates/version.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- config_templates/version.html	(date 1513010399000)
++++ config_templates/version.html	(date 1513011420742)
+@@ -4,8 +4,12 @@
+     <title>${project.name}</title>
+ </head>
+ <body>
+-${project.groupId}:${project.name}:${project.version}<br/>
+-configDir=${masterjava.config}<br/>
++<pre>
++${project.groupId}:${project.artifactId}:${project.version}
++branch.name = ${scmBranch}
++commit.hash = ${buildNumber}
++configDir = ${masterjava.config}
++</pre>
+ <a href="https://github.com/JavaWebinar/masterjava">Многопоточность. Maven. XML. Веб сервисы.</a>
+ </body>
+ </html>
+Index: parent/pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- parent/pom.xml	(date 1513010399000)
++++ parent/pom.xml	(date 1513010891423)
+@@ -61,6 +61,23 @@
+                     </execution>
+                 </executions>
+             </plugin>
++            <plugin>
++                <groupId>org.codehaus.mojo</groupId>
++                <artifactId>buildnumber-maven-plugin</artifactId>
++                <version>1.4</version>
++                <executions>
++                    <execution>
++                        <phase>validate</phase>
++                        <goals>
++                            <goal>create</goal>
++                        </goals>
++                    </execution>
++                </executions>
++                <configuration>
++                    <doCheck>false</doCheck>
++                    <doUpdate>false</doUpdate>
++                </configuration>
++            </plugin>
+         </plugins>
+ 
+         <testResources>
+@@ -99,4 +116,11 @@
+     <dependencyManagement>
+     </dependencyManagement>
+ 
++    <scm>
++        <connection>scm:git:https://github.com/JavaWebinar/masterjava.git</connection>
++        <developerConnection>scm:git:https://github.com/JavaWebinar/masterjava.git</developerConnection>
++        <tag>HEAD</tag>
++        <url>https://github.com/vitchurb/masterjava.git</url>
++    </scm>
++
+ </project>
+\ No newline at end of file

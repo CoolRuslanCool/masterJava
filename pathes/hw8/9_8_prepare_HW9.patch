@@ -1,0 +1,45 @@
+Index: common/src/main/resources/hosts.conf
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- common/src/main/resources/hosts.conf	(revision c3f27b7ac4d0e5413679e292fcff855a88d0ad77)
++++ common/src/main/resources/hosts.conf	(date 1513507760997)
+@@ -1,4 +1,10 @@
+ hosts {
+-  mail = "http://localhost:8080"
++  mail {
++    endpoint = "http://localhost:8080"
++    debug.client = DEBUG
++    debug.server = INFO
++    user = "user"
++    password = "password"
++  }
+ }
+ include file("/apps/masterjava/config/hosts.conf")
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/Statistics.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/Statistics.java	(date 1513508516092)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/Statistics.java	(date 1513508516092)
+@@ -0,0 +1,18 @@
++package ru.javaops.masterjava.web;
++
++import lombok.extern.slf4j.Slf4j;
++
++@Slf4j
++public class Statistics {
++    public enum RESULT {
++        SUCCESS, FAIL
++    }
++
++    public static void count(String payload, long startTime, RESULT result) {
++        long now = System.currentTimeMillis();
++        int ms = (int) (now - startTime);
++        log.info(payload + " " + result.name() + " execution time(ms): " + ms);
++        // place for statistics staff
++
++    }
++}
