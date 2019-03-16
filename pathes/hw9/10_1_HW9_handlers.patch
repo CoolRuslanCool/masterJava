@@ -1,0 +1,286 @@
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapBaseHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapBaseHandler.java	(revision 2f2affcb6a5339a8cbef18a86fbdb073dbc7d466)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapBaseHandler.java	(date 1513615955152)
+@@ -9,6 +9,7 @@
+ 
+ public abstract class SoapBaseHandler implements MessageHandler<MessageHandlerContext> {
+ 
++    @Override
+     public Set<QName> getHeaders() {
+         return null;
+     }
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapLoggingHandlers.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapLoggingHandlers.java	(revision 2f2affcb6a5339a8cbef18a86fbdb073dbc7d466)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapLoggingHandlers.java	(date 1513615955212)
+@@ -56,10 +56,12 @@
+         ERROR {
+             private static final String REQUEST_MSG = "REQUEST_MSG";
+ 
++            @Override
+             public void handleFault(MessageHandlerContext context) {
+                 log.error("Fault SOAP request:\n" + getMessageText(((Message) context.get(REQUEST_MSG))));
+             }
+ 
++            @Override
+             public void handleMessage(MessageHandlerContext context, boolean isRequest) {
+                 if (isRequest) {
+                     context.put(REQUEST_MSG, context.getMessage().copy());
+@@ -67,20 +69,24 @@
+             }
+         },
+         INFO {
++            @Override
+             public void handleFault(MessageHandlerContext context) {
+                 ERROR.handleFault(context);
+             }
+ 
++            @Override
+             public void handleMessage(MessageHandlerContext context, boolean isRequest) {
+                 ERROR.handleMessage(context, isRequest);
+                 log.info((isRequest ? "SOAP request: " : "SOAP response: ") + context.getMessage().getPayloadLocalPart());
+             }
+         },
+         DEBUG {
++            @Override
+             public void handleFault(MessageHandlerContext context) {
+                 log.error("Fault SOAP message:\n" + getMessageText(context.getMessage().copy()));
+             }
+ 
++            @Override
+             public void handleMessage(MessageHandlerContext context, boolean isRequest) {
+                 log.info((isRequest ? "SOAP request:\n" : "SOAP response:\n") + getMessageText(context.getMessage().copy()));
+             }
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapServerSecurityHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapServerSecurityHandler.java	(date 1513509175466)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapServerSecurityHandler.java	(date 1513509175466)
+@@ -0,0 +1,43 @@
++package ru.javaops.masterjava.web.handler;
++
++import com.sun.xml.ws.api.handler.MessageHandlerContext;
++import lombok.extern.slf4j.Slf4j;
++import ru.javaops.masterjava.web.AuthUtil;
++
++import javax.xml.ws.handler.MessageContext;
++import java.util.List;
++import java.util.Map;
++
++import static ru.javaops.masterjava.web.AuthUtil.encodeBasicAuthHeader;
++
++@Slf4j
++abstract public class SoapServerSecurityHandler extends SoapBaseHandler {
++
++    private String authHeader;
++
++    public SoapServerSecurityHandler(String user, String password) {
++        this(encodeBasicAuthHeader(user, password));
++    }
++
++    public SoapServerSecurityHandler(String authHeader) {
++        this.authHeader = authHeader;
++    }
++
++    @Override
++    public boolean handleMessage(MessageHandlerContext ctx) {
++        if (!isOutbound(ctx) && authHeader != null) {
++            Map<String, List<String>> headers = (Map<String, List<String>>) ctx.get(MessageContext.HTTP_REQUEST_HEADERS);
++            int code = AuthUtil.checkBasicAuth(headers, authHeader);
++            if (code != 0) {
++                ctx.put(MessageContext.HTTP_RESPONSE_CODE, code);
++                throw new SecurityException();
++            }
++        }
++        return true;
++    }
++
++    @Override
++    public boolean handleFault(MessageHandlerContext context) {
++        return true;
++    }
++}
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapStatisticHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapStatisticHandler.java	(date 1513615955246)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/handler/SoapStatisticHandler.java	(date 1513615955246)
+@@ -0,0 +1,32 @@
++package ru.javaops.masterjava.web.handler;
++
++import com.sun.xml.ws.api.handler.MessageHandlerContext;
++import ru.javaops.masterjava.web.Statistics;
++
++public class SoapStatisticHandler extends SoapBaseHandler {
++
++    private static final String PAYLOAD = "PAYLOAD";
++    private static final String START_TIME = "START_TIME";
++
++    @Override
++    public boolean handleMessage(MessageHandlerContext context) {
++        if (isOutbound(context)) {
++            count(context, Statistics.RESULT.SUCCESS);
++        } else {
++            String payload = context.getMessage().getPayloadLocalPart();
++            context.put(PAYLOAD, payload);
++            context.put(START_TIME, System.currentTimeMillis());
++        }
++        return true;
++    }
++
++    @Override
++    public boolean handleFault(MessageHandlerContext context) {
++        count(context, Statistics.RESULT.FAIL);
++        return true;
++    }
++
++    private void count(MessageHandlerContext context, Statistics.RESULT result) {
++        Statistics.count((String) context.get(PAYLOAD), (Long) context.get(START_TIME), result);
++    }
++}
+\ No newline at end of file
+Index: services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java	(revision 2f2affcb6a5339a8cbef18a86fbdb073dbc7d466)
++++ services/common-ws/src/main/java/ru/javaops/masterjava/web/WsClient.java	(date 1513615932574)
+@@ -31,7 +31,7 @@
+     }
+ 
+     public void init(String host, String endpointAddress) {
+-        this.endpointAddress = HOSTS.getString(host) + endpointAddress;
++        this.endpointAddress = HOSTS.getConfig(host).getString("endpoint") + endpointAddress;
+     }
+ 
+     //  Post is not thread-safe (http://stackoverflow.com/a/10601916/548473)
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java	(revision 2f2affcb6a5339a8cbef18a86fbdb073dbc7d466)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/MailWSClient.java	(date 1513615932639)
+@@ -6,7 +6,6 @@
+ import com.google.common.io.Resources;
+ import lombok.extern.slf4j.Slf4j;
+ import org.slf4j.event.Level;
+-import ru.javaops.masterjava.web.AuthUtil;
+ import ru.javaops.masterjava.web.WebStateException;
+ import ru.javaops.masterjava.web.WsClient;
+ import ru.javaops.masterjava.web.handler.SoapLoggingHandlers;
+@@ -23,8 +22,6 @@
+     public static final String PASSWORD = "password";
+     private static final SoapLoggingHandlers.ClientHandler LOGGING_HANDLER = new SoapLoggingHandlers.ClientHandler(Level.DEBUG);
+ 
+-    public static String AUTH_HEADER = AuthUtil.encodeBasicAuthHeader(USER, PASSWORD);
+-
+     static {
+         WS_CLIENT = new WsClient<>(Resources.getResource("wsdl/mailService.wsdl"),
+                 new QName("http://mail.javaops.ru/", "MailServiceImplService"),
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailHandlers.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailHandlers.java	(date 1513615932643)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailHandlers.java	(date 1513615932643)
+@@ -0,0 +1,11 @@
++package ru.javaops.masterjava.service.mail;
++
++import ru.javaops.masterjava.web.handler.SoapServerSecurityHandler;
++
++public class MailHandlers {
++    public static class SecurityHandler extends SoapServerSecurityHandler {
++        public SecurityHandler() {
++            super(MailWSClient.USER, MailWSClient.PASSWORD);
++        }
++    }
++}
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java	(revision 2f2affcb6a5339a8cbef18a86fbdb073dbc7d466)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/MailServiceImpl.java	(date 1513509569864)
+@@ -1,16 +1,11 @@
+ package ru.javaops.masterjava.service.mail;
+ 
+-import ru.javaops.masterjava.web.AuthUtil;
+ import ru.javaops.masterjava.web.WebStateException;
+ 
+-import javax.annotation.Resource;
+ import javax.jws.HandlerChain;
+ import javax.jws.WebService;
+-import javax.xml.ws.WebServiceContext;
+-import javax.xml.ws.handler.MessageContext;
+ import javax.xml.ws.soap.MTOM;
+ import java.util.List;
+-import java.util.Map;
+ import java.util.Set;
+ 
+ @WebService(endpointInterface = "ru.javaops.masterjava.service.mail.MailService", targetNamespace = "http://mail.javaops.ru/"
+@@ -21,21 +16,24 @@
+ @HandlerChain(file = "mailWsHandlers.xml")
+ public class MailServiceImpl implements MailService {
+ 
+-    @Resource
+-    private WebServiceContext wsContext;
++//    @Resource
++//    private WebServiceContext wsContext;
+ 
++    @Override
+     public String sendToGroup(Set<Addressee> to, Set<Addressee> cc, String subject, String body, List<Attachment> attachments) throws WebStateException {
++/*
+         MessageContext mCtx = wsContext.getMessageContext();
+         Map<String, List<String>> headers = (Map<String, List<String>>) mCtx.get(MessageContext.HTTP_REQUEST_HEADERS);
+ 
+-//        HttpServletRequest request = (HttpServletRequest) mCtx.get(MessageContext.SERVLET_REQUEST);
+-//        HttpServletResponse response = (HttpServletResponse) mCtx.get(MessageContext.SERVLET_RESPONSE);
++        HttpServletRequest request = (HttpServletRequest) mCtx.get(MessageContext.SERVLET_REQUEST);
++        HttpServletResponse response = (HttpServletResponse) mCtx.get(MessageContext.SERVLET_RESPONSE);
+ 
+         int code = AuthUtil.checkBasicAuth(headers, MailWSClient.AUTH_HEADER);
+         if (code != 0) {
+             mCtx.put(MessageContext.HTTP_RESPONSE_CODE, code);
+             throw new SecurityException();
+         }
++*/
+         return MailSender.sendToGroup(to, cc, subject, body, attachments);
+     }
+ 
+Index: services/mail-service/src/main/resources/mailWsHandlers.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/resources/mailWsHandlers.xml	(revision 2f2affcb6a5339a8cbef18a86fbdb073dbc7d466)
++++ services/mail-service/src/main/resources/mailWsHandlers.xml	(date 1513615932645)
+@@ -4,5 +4,13 @@
+         <handler-name>SoapLoggingHandler</handler-name>
+         <handler-class>ru.javaops.masterjava.web.handler.SoapLoggingHandlers$ServerHandler</handler-class>
+     </handler>
++    <handler>
++        <handler-name>SoapStatisticHandler</handler-name>
++        <handler-class>ru.javaops.masterjava.web.handler.SoapStatisticHandler</handler-class>
++    </handler>
++    <handler>
++        <handler-name>SoapStatisticHandler</handler-name>
++        <handler-class>ru.javaops.masterjava.service.mail.MailHandlers$SecurityHandler</handler-class>
++    </handler>
+ </handler-chain>
+ </handler-chains>
+\ No newline at end of file
