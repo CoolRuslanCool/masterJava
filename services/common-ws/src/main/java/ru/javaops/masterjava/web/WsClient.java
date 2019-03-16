@@ -11,11 +11,12 @@ import javax.xml.ws.Service;
 import javax.xml.ws.WebServiceFeature;
 import javax.xml.ws.handler.Handler;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 public class WsClient<T> {
-    private static Config HOSTS;
+    public static Config HOSTS;
 
     private final Class<T> serviceClass;
     private final Service service;
@@ -49,10 +50,10 @@ public class WsClient<T> {
         requestContext.put(BindingProvider.PASSWORD_PROPERTY, password);
     }
 
-    public static <T> void setHandler(T port, Handler handler) {
+    public static <T> void setHandler(T port, Handler... handlers) {
         Binding binding = ((BindingProvider) port).getBinding();
         List<Handler> handlerList = binding.getHandlerChain();
-        handlerList.add(handler);
+        handlerList.addAll(Arrays.asList(handlers));
         binding.setHandlerChain(handlerList);
     }
 

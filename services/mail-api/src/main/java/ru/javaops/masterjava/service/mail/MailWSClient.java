@@ -19,18 +19,18 @@ import java.util.Set;
 @Slf4j
 public class MailWSClient {
     private static final WsClient<MailService> WS_CLIENT;
-    public static final String USER = "user";
-    public static final String PASSWORD = "password";
-    private static final SoapLoggingHandlers.ClientHandler LOGGING_HANDLER = new SoapLoggingHandlers.ClientHandler(Level.DEBUG);
 
-    public static String AUTH_HEADER = AuthUtil.encodeBasicAuthHeader(USER, PASSWORD);
+    private static final AuthenticationHandler AUTHENTICATION_HANDLER = new AuthenticationHandler();
+    private static final SoapLoggingHandlers.ClientHandler LOGGING_HANDLER = new SoapLoggingHandlers.ClientHandler(Level.DEBUG);
+    private static final SoapLoggingHandlers.ClientStatisticHandler CLIENT_STATISTIC_HANDLER = new SoapLoggingHandlers.ClientStatisticHandler(Level.DEBUG);
+
 
     static {
         WS_CLIENT = new WsClient<>(Resources.getResource("wsdl/mailService.wsdl"),
                 new QName("http://mail.javaops.ru/", "MailServiceImplService"),
                 MailService.class);
 
-        WS_CLIENT.init("mail", "/mail/mailService?wsdl");
+        WS_CLIENT.init("mail.endpoint", "/mail/mailService?wsdl");
     }
 
 
@@ -50,8 +50,7 @@ public class MailWSClient {
 
     private static MailService getPort() {
         MailService port = WS_CLIENT.getPort(new MTOMFeature(1024));
-        WsClient.setAuth(port, USER, PASSWORD);
-        WsClient.setHandler(port, LOGGING_HANDLER);
+        WsClient.setHandler(port, AUTHENTICATION_HANDLER, LOGGING_HANDLER, CLIENT_STATISTIC_HANDLER);
         return port;
     }
 

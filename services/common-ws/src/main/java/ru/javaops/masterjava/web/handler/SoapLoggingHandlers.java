@@ -7,6 +7,7 @@ import com.sun.xml.ws.api.message.Message;
 import com.sun.xml.ws.api.streaming.XMLStreamWriterFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
+import ru.javaops.masterjava.web.Statistics;
 
 import javax.xml.stream.XMLStreamWriter;
 import java.io.ByteArrayOutputStream;
@@ -133,6 +134,61 @@ public abstract class SoapLoggingHandlers extends SoapBaseHandler {
 
         public ServerHandler() {
             super(Level.INFO);
+        }
+
+        @Override
+        protected boolean isRequest(boolean isOutbound) {
+            return !isOutbound;
+        }
+    }
+
+    public static class ClientStatisticHandler extends SoapLoggingHandlers {
+        public ClientStatisticHandler(Level loggingLevel) {
+            super(loggingLevel);
+        }
+
+        @Override
+        public boolean handleMessage(MessageHandlerContext mhc) {
+            if (isRequest(isOutbound(mhc))) {
+                Statistics.count(HANDLER.getMessageText(mhc.getMessage().copy()), System.currentTimeMillis(), Statistics.RESULT.SUCCESS);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean handleFault(MessageHandlerContext mhc) {
+            if (isRequest(isOutbound(mhc))) {
+                Statistics.count(HANDLER.getMessageText(mhc.getMessage().copy()), System.currentTimeMillis(), Statistics.RESULT.FAIL);
+            }
+            return true;
+        }
+
+        @Override
+        protected boolean isRequest(boolean isOutbound) {
+            return isOutbound;
+        }
+    }
+
+    public static class ServerStatisticHandler extends SoapLoggingHandlers {
+
+        public ServerStatisticHandler() {
+            super(Level.INFO);
+        }
+
+        @Override
+        public boolean handleMessage(MessageHandlerContext mhc) {
+            if (isRequest(isOutbound(mhc))) {
+                Statistics.count(HANDLER.getMessageText(mhc.getMessage().copy()), System.currentTimeMillis(), Statistics.RESULT.SUCCESS);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean handleFault(MessageHandlerContext mhc) {
+            if (isRequest(isOutbound(mhc))) {
+                Statistics.count(HANDLER.getMessageText(mhc.getMessage().copy()), System.currentTimeMillis(), Statistics.RESULT.FAIL);
+            }
+            return true;
         }
 
         @Override
