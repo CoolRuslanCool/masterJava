@@ -1,0 +1,299 @@
+Index: common/src/main/java/ru/javaops/masterjava/util/Exceptions.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- common/src/main/java/ru/javaops/masterjava/util/Exceptions.java	(date 1514244438533)
++++ common/src/main/java/ru/javaops/masterjava/util/Exceptions.java	(date 1514244438533)
+@@ -0,0 +1,27 @@
++package ru.javaops.masterjava.util;
++
++import lombok.experimental.UtilityClass;
++
++/**
++ *  @see <a href="https://github.com/diffplug/durian/blob/master/src/com/diffplug/common/base/Errors.java">full Errors at Durian project</a>
++ */
++@UtilityClass
++public class Exceptions {
++    public static <E extends Exception> java.lang.Runnable wrap(Functions.Specific.Runnable<E> runnableWitEx) {
++        return () -> {
++            try {
++                runnableWitEx.run();
++            } catch (Exception e) {
++                throw asRuntime(e);
++            }
++        };
++    }
++
++    public static RuntimeException asRuntime(Throwable e) {
++        if (e instanceof RuntimeException) {
++            return (RuntimeException) e;
++        } else {
++            return new RuntimeException(e);
++        }
++    }
++}
+Index: common/src/main/java/ru/javaops/masterjava/util/Functions.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- common/src/main/java/ru/javaops/masterjava/util/Functions.java	(date 1514244438583)
++++ common/src/main/java/ru/javaops/masterjava/util/Functions.java	(date 1514244438583)
+@@ -0,0 +1,83 @@
++package ru.javaops.masterjava.util;
++
++/**
++ *  @see <a href="https://github.com/diffplug/durian/blob/master/src/com/diffplug/common/base/Throwing.java">Throwing at Durian project</a>
++ */
++public interface Functions {
++    /**
++     * Variations on the standard functional interfaces which throw a specific subclass of Exception.
++     */
++    interface Specific {
++        @FunctionalInterface
++        interface Runnable<E extends Exception> {
++            void run() throws E;
++        }
++
++        @FunctionalInterface
++        interface Supplier<T, E extends Exception> {
++            T get() throws E;
++        }
++
++        @FunctionalInterface
++        interface Consumer<T, E extends Exception> {
++            void accept(T t) throws E;
++        }
++
++        @FunctionalInterface
++        interface Function<T, R, E extends Exception> {
++            R apply(T t) throws E;
++        }
++
++        @FunctionalInterface
++        interface Predicate<T, E extends Exception> {
++            boolean test(T t) throws E;
++        }
++
++        @FunctionalInterface
++        interface BiConsumer<T, U, E extends Exception> {
++            void accept(T t, U u) throws E;
++        }
++
++        @FunctionalInterface
++        interface BiFunction<T, U, R, E extends Exception> {
++            R apply(T t, U u) throws E;
++        }
++
++        @FunctionalInterface
++        interface BiPredicate<T, U, E extends Exception> {
++            boolean accept(T t, U u) throws E;
++        }
++    }
++
++    @FunctionalInterface
++    interface RunnableEx extends Specific.Runnable<Exception> {
++    }
++
++    @FunctionalInterface
++    interface SupplierEx<T> extends Specific.Supplier<T, Exception> {
++    }
++
++    @FunctionalInterface
++    interface ConsumerEx<T> extends Specific.Consumer<T, Exception> {
++    }
++
++    @FunctionalInterface
++    interface FunctionEx<T, R> extends Specific.Function<T, R, Exception> {
++    }
++
++    @FunctionalInterface
++    interface PredicateEx<T> extends Specific.Predicate<T, Exception> {
++    }
++
++    @FunctionalInterface
++    interface BiConsumerEx<T, U> extends Specific.BiConsumer<T, U, Exception> {
++    }
++
++    @FunctionalInterface
++    interface BiFunctionEx<T, U, R> extends Specific.BiFunction<T, U, R, Exception> {
++    }
++
++    @FunctionalInterface
++    interface BiPredicateEx<T, U> extends Specific.BiPredicate<T, U, Exception> {
++    }
++}
+\ No newline at end of file
+Index: web/webapp/src/main/java/ru/javaops/masterjava/webapp/WebUtil.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- web/webapp/src/main/java/ru/javaops/masterjava/webapp/WebUtil.java	(date 1514244599866)
++++ web/webapp/src/main/java/ru/javaops/masterjava/webapp/WebUtil.java	(date 1514244599866)
+@@ -0,0 +1,52 @@
++package ru.javaops.masterjava.webapp;
++
++import com.google.common.base.Strings;
++import com.google.common.collect.ImmutableList;
++import lombok.extern.slf4j.Slf4j;
++import org.apache.commons.io.IOUtils;
++import ru.javaops.masterjava.service.mail.util.MailUtils.MailObject;
++import ru.javaops.masterjava.util.Functions;
++
++import javax.servlet.ServletException;
++import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
++import javax.servlet.http.Part;
++import java.io.IOException;
++import java.util.AbstractMap.SimpleImmutableEntry;
++
++import static com.google.common.base.Preconditions.checkArgument;
++
++@Slf4j
++public class WebUtil {
++
++    public static void doAndWriteResponse(HttpServletResponse resp, Functions.SupplierEx<String> doer) throws IOException {
++        log.info("Start sending");
++        resp.setCharacterEncoding("UTF-8");
++        String result;
++        try {
++            log.info("Start processing");
++            result = doer.get();
++            log.info("Processing finished with result: {}", result);
++        } catch (Exception e) {
++            log.error("Processing failed", e);
++            String message = e.getMessage();
++            result = (message != null) ? message : e.getClass().getName();
++        }
++        resp.getWriter().write(result);
++    }
++
++    public static String getNotEmptyParam(HttpServletRequest req, String param) {
++        String value = req.getParameter(param);
++        checkArgument(!Strings.isNullOrEmpty(value), param + " must not be empty");
++        return value;
++    }
++
++    public static MailObject createMailObject(HttpServletRequest req) throws IOException, ServletException {
++        Part filePart = req.getPart("attach");
++        return new MailObject(getNotEmptyParam(req, "users"), req.getParameter("subject"), getNotEmptyParam(req, "body"),
++                filePart == null ?
++                        ImmutableList.of() :
++                        ImmutableList.of(new SimpleImmutableEntry<>(filePart.getSubmittedFileName(), IOUtils.toByteArray(filePart.getInputStream())))
++        );
++    }
++}
+Index: web/webapp/src/main/java/ru/javaops/masterjava/webapp/JmsSendServlet.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- web/webapp/src/main/java/ru/javaops/masterjava/webapp/JmsSendServlet.java	(date 1514244434000)
++++ web/webapp/src/main/java/ru/javaops/masterjava/webapp/JmsSendServlet.java	(date 1514244542336)
+@@ -1,8 +1,6 @@
+ package ru.javaops.masterjava.webapp;
+ 
+-import com.google.common.collect.ImmutableList;
+ import lombok.extern.slf4j.Slf4j;
+-import org.apache.commons.io.IOUtils;
+ import ru.javaops.masterjava.service.mail.util.MailUtils.MailObject;
+ 
+ import javax.jms.*;
+@@ -14,14 +12,15 @@
+ import javax.servlet.http.HttpServlet;
+ import javax.servlet.http.HttpServletRequest;
+ import javax.servlet.http.HttpServletResponse;
+-import javax.servlet.http.Part;
+ import java.io.IOException;
+ import java.lang.IllegalStateException;
+-import java.util.AbstractMap.SimpleImmutableEntry;
++
++import static ru.javaops.masterjava.webapp.WebUtil.doAndWriteResponse;
+ 
+ @WebServlet("/sendJms")
+ @Slf4j
+-@MultipartConfig
++@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 10, //10 MB in memory limit
++        maxFileSize = 1024 * 1024 * 25)
+ public class JmsSendServlet extends HttpServlet {
+     private Connection connection;
+     private Session session;
+@@ -54,25 +53,8 @@
+ 
+     @Override
+     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+-        String result;
+-        try {
+-            log.info("Start sending");
+-            req.setCharacterEncoding("UTF-8");
+-            resp.setCharacterEncoding("UTF-8");
+-            Part filePart = req.getPart("attach");
+-
+-            MailObject mailObject = new MailObject(req.getParameter("users"), req.getParameter("subject"), req.getParameter("body"),
+-                    filePart == null ?
+-                            ImmutableList.of() :
+-                            ImmutableList.of(new SimpleImmutableEntry<>(filePart.getSubmittedFileName(), IOUtils.toByteArray(filePart.getInputStream())))
+-            );
+-            result = sendJms(mailObject);
+-            log.info("Processing finished with result: {}", result);
+-        } catch (Exception e) {
+-            log.error("Processing failed", e);
+-            result = e.toString();
+-        }
+-        resp.getWriter().write(result);
++        req.setCharacterEncoding("UTF-8");
++        doAndWriteResponse(resp, () -> sendJms(WebUtil.createMailObject(req)));
+     }
+ 
+     private synchronized String sendJms(MailObject mailObject) throws JMSException {
+Index: web/webapp/src/main/java/ru/javaops/masterjava/webapp/SoapSendServlet.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- web/webapp/src/main/java/ru/javaops/masterjava/webapp/SoapSendServlet.java	(date 1514244434000)
++++ web/webapp/src/main/java/ru/javaops/masterjava/webapp/SoapSendServlet.java	(date 1514244438666)
+@@ -14,30 +14,26 @@
+ import javax.servlet.http.Part;
+ import java.io.IOException;
+ 
++import static ru.javaops.masterjava.webapp.WebUtil.doAndWriteResponse;
++import static ru.javaops.masterjava.webapp.WebUtil.getNotEmptyParam;
++
+ @WebServlet("/sendSoap")
+ @Slf4j
+-@MultipartConfig
++@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 10, //10 MB in memory limit
++        maxFileSize = 1024 * 1024 * 25)
+ public class SoapSendServlet extends HttpServlet {
+     @Override
+     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+-        String result;
+-        try {
+-            log.info("Start sending");
+-            req.setCharacterEncoding("UTF-8");
+-            resp.setCharacterEncoding("UTF-8");
+-            String users = req.getParameter("users");
++        req.setCharacterEncoding("UTF-8");
++        doAndWriteResponse(resp, () -> {
++            String users = getNotEmptyParam(req, "users");
+             String subject = req.getParameter("subject");
+-            String body = req.getParameter("body");
++            String body = getNotEmptyParam(req, "body");
+             Part filePart = req.getPart("attach");
+             GroupResult groupResult = MailWSClient.sendBulk(MailUtils.split(users), subject, body,
+                     filePart == null ? null :
+                             ImmutableList.of(MailUtils.getAttachment(filePart.getSubmittedFileName(), filePart.getInputStream())));
+-            result = groupResult.toString();
+-            log.info("Processing finished with result: {}", result);
+-        } catch (Exception e) {
+-            log.error("Processing failed", e);
+-            result = e.toString();
+-        }
+-        resp.getWriter().write(result);
++            return groupResult.toString();
++        });
+     }
+ }

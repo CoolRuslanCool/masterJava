@@ -1,0 +1,90 @@
+Index: persist/src/main/java/ru/javaops/masterjava/persist/dao/UserDao.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- persist/src/main/java/ru/javaops/masterjava/persist/dao/UserDao.java	(revision 3c103ae7ee68bdd2106478d02819086c4cd0df0e)
++++ persist/src/main/java/ru/javaops/masterjava/persist/dao/UserDao.java	(date 1517173425965)
+@@ -18,7 +18,7 @@
+             int id = insertGeneratedId(user);
+             user.setId(id);
+         } else {
+-            insertWitId(user);
++            insertWithId(user);
+         }
+         return user;
+     }
+@@ -38,7 +38,7 @@
+     abstract int insertGeneratedId(@BindBean User user);
+ 
+     @SqlUpdate("INSERT INTO users (id, full_name, email, flag, city_ref) VALUES (:id, :fullName, :email, CAST(:flag AS USER_FLAG), :cityRef) ")
+-    abstract void insertWitId(@BindBean User user);
++    abstract void insertWithId(@BindBean User user);
+ 
+     @SqlQuery("SELECT * FROM users ORDER BY full_name, email LIMIT :it")
+     public abstract List<User> getWithLimit(@Bind int limit);
+Index: persist/src/test/java/ru/javaops/masterjava/persist/dao/UserDaoTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- persist/src/test/java/ru/javaops/masterjava/persist/dao/UserDaoTest.java	(revision 3c103ae7ee68bdd2106478d02819086c4cd0df0e)
++++ persist/src/test/java/ru/javaops/masterjava/persist/dao/UserDaoTest.java	(date 1517851516726)
+@@ -9,7 +9,7 @@
+ 
+ import java.util.List;
+ 
+-import static ru.javaops.masterjava.persist.UserTestData.FIST5_USERS;
++import static ru.javaops.masterjava.persist.UserTestData.FIRST5_USERS;
+ 
+ public class UserDaoTest extends AbstractDaoTest<UserDao> {
+ 
+@@ -30,13 +30,13 @@
+     @Test
+     public void getWithLimit() {
+         List<User> users = dao.getWithLimit(5);
+-        Assert.assertEquals(FIST5_USERS, users);
++        Assert.assertEquals(FIRST5_USERS, users);
+     }
+ 
+     @Test
+     public void insertBatch() throws Exception {
+         dao.clean();
+-        dao.insertBatch(FIST5_USERS, 3);
++        dao.insertBatch(FIRST5_USERS, 3);
+         Assert.assertEquals(5, dao.getWithLimit(100).size());
+     }
+ 
+Index: persist/src/test/java/ru/javaops/masterjava/persist/UserTestData.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- persist/src/test/java/ru/javaops/masterjava/persist/UserTestData.java	(revision 3c103ae7ee68bdd2106478d02819086c4cd0df0e)
++++ persist/src/test/java/ru/javaops/masterjava/persist/UserTestData.java	(date 1517851516603)
+@@ -16,7 +16,7 @@
+     public static User USER1;
+     public static User USER2;
+     public static User USER3;
+-    public static List<User> FIST5_USERS;
++    public static List<User> FIRST5_USERS;
+ 
+     public static void init() {
+         CityTestData.init();
+@@ -28,14 +28,14 @@
+         USER1 = new User("User1", "user1@gmail.com", UserFlag.active, MOSCOW.getRef());
+         USER2 = new User("User2", "user2@yandex.ru", UserFlag.active, KIEV.getRef());
+         USER3 = new User("User3", "user3@yandex.ru", UserFlag.active, MINSK.getRef());
+-        FIST5_USERS = ImmutableList.of(ADMIN, DELETED, FULL_NAME, USER1, USER2);
++        FIRST5_USERS = ImmutableList.of(ADMIN, DELETED, FULL_NAME, USER1, USER2);
+     }
+ 
+     public static void setUp() {
+         UserDao dao = DBIProvider.getDao(UserDao.class);
+         dao.clean();
+         DBIProvider.getDBI().useTransaction((conn, status) -> {
+-            FIST5_USERS.forEach(dao::insert);
++            FIRST5_USERS.forEach(dao::insert);
+             dao.insert(USER3);
+         });
+     }

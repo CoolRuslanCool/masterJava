@@ -1,0 +1,187 @@
+Index: services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java	(revision bd2ab379ee1b838194785060d3758b7b9d97124d)
++++ services/mail-api/src/main/java/ru/javaops/masterjava/service/mail/util/Attachments.java	(date 1514142721422)
+@@ -18,26 +18,29 @@
+     //    http://stackoverflow.com/questions/2830561/how-to-convert-an-inputstream-to-a-datahandler
+     //    http://stackoverflow.com/a/10783565/548473
+     @AllArgsConstructor
+-    private static class InputStreamDataSource implements DataSource {
++    private static class InputStreamDataSource implements ProxyDataSource {
+         private InputStream inputStream;
+ 
+         @Override
+         public InputStream getInputStream() throws IOException {
+             return new CloseShieldInputStream(inputStream);
+         }
++    }
++
++    public interface ProxyDataSource extends DataSource {
+ 
+         @Override
+-        public OutputStream getOutputStream() throws IOException {
++        default OutputStream getOutputStream() throws IOException {
+             throw new UnsupportedOperationException("Not implemented");
+         }
+ 
+         @Override
+-        public String getContentType() {
++        default String getContentType() {
+             return "application/octet-stream";
+         }
+ 
+         @Override
+-        public String getName() {
++        default String getName() {
+             return "";
+         }
+     }
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/rest/MailRestConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/rest/MailRestConfig.java	(revision bd2ab379ee1b838194785060d3758b7b9d97124d)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/rest/MailRestConfig.java	(date 1514142522236)
+@@ -1,5 +1,6 @@
+ package ru.javaops.masterjava.service.mail.rest;
+ 
++import org.glassfish.jersey.media.multipart.MultiPartFeature;
+ import org.glassfish.jersey.server.ResourceConfig;
+ import org.slf4j.bridge.SLF4JBridgeHandler;
+ 
+@@ -13,5 +14,6 @@
+         // http://stackoverflow.com/questions/4121722
+         SLF4JBridgeHandler.install();
+         packages("ru.javaops.masterjava.service.mail.rest");
++        register(MultiPartFeature.class);
+     }
+ }
+\ No newline at end of file
+Index: services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/rest/MailRS.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/rest/MailRS.java	(revision bd2ab379ee1b838194785060d3758b7b9d97124d)
++++ services/mail-service/src/main/java/ru/javaops/masterjava/service/mail/rest/MailRS.java	(date 1514143741476)
+@@ -1,15 +1,23 @@
+ package ru.javaops.masterjava.service.mail.rest;
+ 
+ 
++import com.google.common.collect.ImmutableList;
++import org.glassfish.jersey.media.multipart.BodyPartEntity;
++import org.glassfish.jersey.media.multipart.FormDataBodyPart;
++import org.glassfish.jersey.media.multipart.FormDataParam;
+ import org.hibernate.validator.constraints.NotBlank;
++import ru.javaops.masterjava.service.mail.Attachment;
+ import ru.javaops.masterjava.service.mail.GroupResult;
+ import ru.javaops.masterjava.service.mail.MailServiceExecutor;
+ import ru.javaops.masterjava.service.mail.MailWSClient;
++import ru.javaops.masterjava.service.mail.util.Attachments;
+ import ru.javaops.masterjava.web.WebStateException;
+ 
++import javax.activation.DataHandler;
+ import javax.ws.rs.*;
+ import javax.ws.rs.core.MediaType;
+-import java.util.Collections;
++import java.io.UnsupportedEncodingException;
++import java.util.List;
+ 
+ @Path("/")
+ public class MailRS {
+@@ -23,10 +31,27 @@
+     @POST
+     @Path("send")
+     @Produces(MediaType.APPLICATION_JSON)
+-    public GroupResult send(@NotBlank @FormParam("users") String users,
+-                            @FormParam("subject") String subject,
+-                            @NotBlank @FormParam("body") String body) throws WebStateException {
++    @Consumes(MediaType.MULTIPART_FORM_DATA)
++    public GroupResult send(@NotBlank @FormDataParam("users") String users,
++                            @FormDataParam("subject") String subject,
++                            @NotBlank @FormDataParam("body") String body,
++                            @FormDataParam("attach") FormDataBodyPart attachBodyPart) throws WebStateException {
+ 
+-        return MailServiceExecutor.sendBulk(MailWSClient.split(users), subject, body, Collections.emptyList());
++        final List<Attachment> attachments;
++        if (attachBodyPart == null) {
++            attachments = ImmutableList.of();
++        } else {
++            try {
++                String attachName = attachBodyPart.getContentDisposition().getFileName();
++//          UTF-8 encoding workaround: https://java.net/jira/browse/JERSEY-3032
++                String utf8name = new String(attachName.getBytes("ISO8859_1"), "UTF-8");
++                BodyPartEntity bodyPartEntity = ((BodyPartEntity) attachBodyPart.getEntity());
++
++                attachments = ImmutableList.of(new Attachment(utf8name, new DataHandler((Attachments.ProxyDataSource) bodyPartEntity::getInputStream)));
++            } catch (UnsupportedEncodingException e) {
++                throw new IllegalStateException(e);
++            }
++        }
++        return MailServiceExecutor.sendBulk(MailWSClient.split(users), subject, body, attachments);
+     }
+ }
+\ No newline at end of file
+Index: services/mail-service/pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- services/mail-service/pom.xml	(revision bd2ab379ee1b838194785060d3758b7b9d97124d)
++++ services/mail-service/pom.xml	(date 1514142876433)
+@@ -99,6 +99,17 @@
+             <artifactId>jersey-bean-validation</artifactId>
+             <version>${jersey.version}</version>
+         </dependency>
++        <dependency>
++            <groupId>org.glassfish.jersey.media</groupId>
++            <artifactId>jersey-media-multipart</artifactId>
++            <version>${jersey.version}</version>
++            <exclusions>
++                <exclusion>
++                    <groupId>org.jvnet.mimepull</groupId>
++                    <artifactId>mimepull</artifactId>
++                </exclusion>
++            </exclusions>
++        </dependency>
+ 
+         <dependency>
+             <groupId>org.apache.activemq</groupId>
+Index: web/webapp/src/main/webapp/WEB-INF/templates/users.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- web/webapp/src/main/webapp/WEB-INF/templates/users.html	(revision bd2ab379ee1b838194785060d3758b7b9d97124d)
++++ web/webapp/src/main/webapp/WEB-INF/templates/users.html	(date 1514142966803)
+@@ -71,7 +71,7 @@
+         }
+ 
+         var param;
+-        if (transport === "SOAP") {
++        if (transport === "SOAP" || transport === "REST") {
+             // https://stackoverflow.com/a/5976031/548473
+             var data = new FormData();
+             data.append('users', users);
+@@ -80,14 +80,14 @@
+             var attach = $('#attach')[0].files[0];
+             if (attach) data.append('attach', attach);
+             param = {
+-                url: "sendSoap",
++                url: (transport === "REST" ? "/mail/rest/send" : "sendSoap"),
+                 data: data,
+                 contentType: false,
+                 processData: false
+             };
+-        } else if (transport === "REST" || transport === "JMS") {
++        } else if (transport === "JMS") {
+             param = {
+-                url: (transport === "REST" ? "/mail/rest/send" : "sendJms"),
++                url: "sendJms",
+                 data: "users=" + users + "&subject=" + $("#subject").val() + "&body=" + $("#body").val(),
+                 contentType: "application/x-www-form-urlencoded"
+             };
