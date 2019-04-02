@@ -8,6 +8,7 @@ import ru.javaops.masterjava.config.Configs;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.Duration;
 
+import javax.servlet.AsyncContext;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -34,6 +35,10 @@ public class AkkaActivator {
     public <T> ActorRef startActor(Class<T> actorClass, String name) {
         log.info("Start AKKA actor: {}", name);
         return system.actorOf(Props.create(actorClass), name);
+    }
+
+    public ActorRef startActor(Props props) {
+        return system.actorOf(props);
     }
 
     public <T> T getTypedRef(Class<T> typedClass, String path) {

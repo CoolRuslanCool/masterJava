@@ -19,20 +19,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Slf4j
 public class WebUtil {
 
-    public static void doAndWriteResponse(HttpServletResponse resp, Functions.SupplierEx<String> doer) throws IOException {
+    public static void doAndWriteResponse(HttpServletResponse resp, Functions.RunnableEx runnable) throws IOException {
         log.info("Start sending");
         resp.setCharacterEncoding("UTF-8");
         String result;
         try {
             log.info("Start processing");
-            result = doer.get();
-            log.info("Processing finished with result: {}", result);
+            runnable.run();
+            log.info("Processing finished.");
         } catch (Exception e) {
             log.error("Processing failed", e);
             String message = e.getMessage();
             result = (message != null) ? message : e.getClass().getName();
+
         }
-        resp.getWriter().write(result);
+
     }
 
     public static String getNotEmptyParam(HttpServletRequest req, String param) {
