@@ -7,6 +7,7 @@ import ru.javaops.masterjava.service.mail.util.MailUtils.MailObject;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -36,7 +37,24 @@ public class AkkaTypedSendServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         req.setCharacterEncoding("UTF-8");
-        doAndWriteResponse(resp, () -> sendAkka(createMailObject(req)));
+        req.setAttribute("org.apache.catalina.ASYNC_SUPPORTED", true);
+
+        log.info("Start TypedSendServlet.");
+
+        AsyncContext asyncContext = req.startAsync();
+        asyncContext.start(() -> {
+            log.info("Start async TypedSendServlet runnable.");
+            try {
+                doAndWriteResponse(resp, () -> sendAkka(createMailObject(req)));
+            } catch (IOException e) {/*NOP*/}            log.info("Finish async TypedSendServlet runnable.");
+
+
+            asyncContext.complete();
+
+            log.info("Finish async TypedSendServlet runnable.");
+        });
+
+        log.info("Finish TypedSendServlet.");
     }
 
     private String sendAkka(MailObject mailObject) throws Exception {
